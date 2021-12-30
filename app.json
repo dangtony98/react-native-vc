@@ -1,4 +1,13 @@
 {
   "name": "ReactNativeVC",
-  "displayName": "ReactNativeVC"
+  "displayName": "ReactNativeVC",
+  "plugins": [
+    [
+      "@react-native-voice/voice",
+      {
+        "microphonePermission": "CUSTOM: Allow test to access the microphone",
+        "speechRecognitionPermission": "CUSTOM: Allow test to securely recognize user speech"
+      }
+    ]
+  ]
 }
