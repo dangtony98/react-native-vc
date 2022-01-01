@@ -7,6 +7,7 @@
  */
 
 import React, { Component, useEffect, useState } from 'react';
+import {ApolloProvider, useQuery } from '@apollo/client';
 import type {Node} from 'react';
 import {
   SafeAreaView,
@@ -26,45 +27,12 @@ import {
 } from './src/handlePhraseProcessing';
 import Voice from '@react-native-voice/voice';
 import TrackPlayer, { Capability } from 'react-native-track-player';
-import _ from 'lodash';
+import _, { partial } from 'lodash';
+import { client } from './src/client';
+import getAudioQuery from './src/queries/getAudio';
+import { setQueue } from './src/handlePhraseProcessing';
 
-const VOICES = ['com.apple.ttsbundle.Maged-compact', 'com.apple.ttsbundle.Zuzana-compact', 'com.apple.ttsbundle.Sara-compact', 'com.apple.ttsbundle.Anna-compact', 'com.apple.ttsbundle.Melina-compact', 'com.apple.ttsbundle.Karen-compact', 'com.apple.ttsbundle.Daniel-compact', 'com.apple.ttsbundle.Moira-compact', 'com.apple.ttsbundle.Rishi-compact', 'com.apple.ttsbundle.Samantha-compact', 'com.apple.ttsbundle.Tessa-compact', 'com.apple.ttsbundle.Monica-compact', 'com.apple.ttsbundle.Paulina-compact', 'com.apple.ttsbundle.Satu-compact', 'com.apple.ttsbundle.Amelie-compact', 'com.apple.ttsbundle.Thomas-compact', 'com.apple.ttsbundle.Carmit-compact', 'com.apple.ttsbundle.Lekha-compact', 'com.apple.ttsbundle.Mariska-compact', 'com.apple.ttsbundle.Damayanti-compact', 'com.apple.ttsbundle.Alice-compact', 'com.apple.ttsbundle.Kyoko-compact', 'com.apple.ttsbundle.Yuna-compact', 'com.apple.ttsbundle.Ellen-compact', 'com.apple.ttsbundle.Xander-compact', 'com.apple.ttsbundle.Nora-compact', 'com.apple.ttsbundle.Zosia-compact', 'com.apple.ttsbundle.Luciana-compact', 'com.apple.ttsbundle.Joana-compact', 'com.apple.ttsbundle.Ioana-compact', 'com.apple.ttsbundle.Milena-compact', 'com.apple.ttsbundle.Laura-compact', 'com.apple.ttsbundle.Alva-compact', 'com.apple.ttsbundle.Kanya-compact', 'com.apple.ttsbundle.Yelda-compact', 'com.apple.ttsbundle.Ting-Ting-compact', 'com.apple.ttsbundle.Sin-Ji-compact', 'com.apple.ttsbundle.Mei-Jia-compact']
-
-const JUMP_HOME = ['jump', 'home'];
-const JUMP_EXPLORE = ['jump', 'explore'];
-const JUMP_SEARCH = ['jump', 'search'];
-
-const VOICE_STATES = {
-  tutorial: {
-    state: 'tutorial',
-    firstSystemResponses: [],
-    systemResponses: []
-  },
-  home: {
-    state: 'home',
-    firstSystemResponses: [],
-    systemResponses: [{
-      id: 'voice-123',
-      title: 'Home',
-      url: 'https://audio-social.s3.us-east-2.amazonaws.com/voice-response/bdecb2b0-2433-4293-8f06-2b2796c67ad5.mp3'
-    }],
-    allowedCommands: [JUMP_EXPLORE, JUMP_SEARCH]
-  },
-  explore: {
-    state: 'explore',
-    firstSystemResponses: [],
-    systemResponses: [{
-      id: 'voice-234',
-      title: 'Explore',
-      url: 'https://audio-social.s3.amazonaws.com/voice-response/d4804e97-8265-4c32-8040-bdfbd29417c3.mp3'
-    }],
-    allowedCommands: [JUMP_HOME]
-  }
-}
-
-const STATE_TOKENS = Object.keys(VOICE_STATES);
-
-const App = () => {
+const VoiceScreen = () => {
   const [currentState, setCurrentState] = useState('home');
   const [pitch, setPitch] = useState('');
   const [error, setError] = useState('');
@@ -75,7 +43,21 @@ const App = () => {
   const [partialResults, setPartialResults] = useState([]);
 
   const [resultsWindow, setResultsWindow] = useState([]);
-  const [partialResultsWindow, setPartialResultsWindow] = useState([]);
+
+  const { 
+    loading,
+    error: audioError, 
+    data,
+    refetch: refetchAudio,
+    fetchMore
+  } = useQuery(getAudioQuery, {
+    notifyOnNetworkStatusChange: true,
+    variables: {
+      offset: 0,
+      limit: 15
+    },
+    fetchPolicy: 'cache-and-network'
+  });
 
   const _startRecognizing = async () => {
     setPitch('');
@@ -193,7 +175,9 @@ const App = () => {
     const action = detectState({
       resultsWindow: window, 
       stateTokens: STATE_TOKENS,
+      currentState,
       setCurrentState,
+      voiceStates: VOICE_STATES,
       _cancelRecognizing
     });
   }, [results]);
@@ -208,8 +192,99 @@ const App = () => {
     });
   }, [currentState]);
 
+  // TODO: can a voice state be triggered by multiple words?
+  const VOICE_STATES = {
+    tutorial: {
+      state: 'tutorial',
+      firstSystemResponses: [],
+      systemResponses: [],
+      handleFunc: () => {}
+    },
+    home: {
+      state: 'home',
+      firstSystemResponses: [],
+      systemResponses: [{
+        id: 'voice-123',
+        title: 'Home',
+        url: 'https://audio-social.s3.us-east-2.amazonaws.com/voice-response/bdecb2b0-2433-4293-8f06-2b2796c67ad5.mp3',
+        artist: 'Auledge',
+        duration: 6000
+      }],
+      handleFunc: () => {
+        _startRecognizing();
+      },
+      allowedNextStates: ['explore']
+    },
+    explore: {
+      state: 'explore',
+      firstSystemResponses: [],
+      systemResponses: [{
+        id: 'voice-234',
+        title: 'Explore',
+        url: 'https://audio-social.s3.amazonaws.com/voice-response/d4804e97-8265-4c32-8040-bdfbd29417c3.mp3',
+        artist: 'Auledge',
+        duration: 2000
+      }],
+      handleFunc: () => {
+        // after system speaks, start playing audio queue
+        if (data?.getAudio) {
+          console.log(data.getAudio);
+          setQueue(data?.getAudio);
+        }
+        _startRecognizing();
+      },
+      allowedNextStates: ['next', 'back', 'home', 'pause']
+    },
+    next: {
+      state: 'next',
+      firstSystemResponses: [],
+      systemResponses: [],
+      handleFunc: async () => {
+        // play next
+        await TrackPlayer.skipToNext();
+        _startRecognizing();
+      },
+      allowedNextStates: ['next', 'back', 'home', 'pause']
+    },
+    back: {
+      state: 'back',
+      firstSystemResponses: [],
+      systemResponses: [],
+      handleFunc: async () => {
+        // play previous
+        await TrackPlayer.skipToPrevious();
+        _startRecognizing();
+      },
+      allowedNextStates: ['next', 'back', 'play', 'pause', 'home']
+    },
+    play: {
+      state: 'play',
+      firstSystemResponses: [],
+      systemResponses: [],
+      handleFunc: async () => {
+        // play previous
+        await TrackPlayer.play();
+        _startRecognizing();
+      },
+      allowedNextStates: ['next', 'back', 'home', 'pause']
+    },
+    pause: {
+      state: 'pause',
+      firstSystemResponses: [],
+      systemResponses: [],
+      handleFunc: async () => {
+        // play previous
+        await TrackPlayer.pause();
+        _startRecognizing();
+      },
+      allowedNextStates: ['next', 'back', 'home', 'play']
+    },
+  }
+
+  const STATE_TOKENS = Object.keys(VOICE_STATES);
+
   return (
-    <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <TouchableOpacity style={styles.button} onPress={_startRecognizing}>
           <Text>Start Recognizing</Text>
         </TouchableOpacity>
@@ -231,6 +306,14 @@ const App = () => {
         })}
     </View>
   );
+}
+
+const App = () => {
+  return (
+    <ApolloProvider client={client}>
+      <VoiceScreen />
+    </ApolloProvider>
+  )
 }
 
 const styles = StyleSheet.create({

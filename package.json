@@ -10,7 +10,9 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@apollo/client": "^3.3.16",
     "@react-native-voice/voice": "^3.2.2",
+    "graphql": "^16.2.0",
     "lodash": "^4.17.21",
     "react": "17.0.2",
     "react-native": "^0.66.4",
