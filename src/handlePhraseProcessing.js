@@ -77,77 +77,39 @@ const detectState = async ({
     console.log(voiceStates[currentState].allowedNextStates);
     console.log(resultsWindow);
 
-    // return state token if detected in [resultsWindow]
-    for (let i = 0; i < voiceStates[currentState].allowedNextStates.length; i++) {
-        const stateToken = voiceStates[currentState].allowedNextStates[i];
-        const stateTokenIdx = resultsWindow.indexOf(stateToken);
-        if (stateTokenIdx != -1) {
-            // case: [stateToken] is present in [resultsWindow]
-            // TODO: consider storing resultsWindow[stateTokenIdx:] in the current state
-            setCurrentState(stateToken);
-            console.log('state detected');
-            await _cancelRecognizing();
+    for (let i = resultsWindow.length - 1; i >= 0; i--) {
+        const token = resultsWindow[i];
+        // position is i
+        if (voiceStates[currentState].allowedNextStates.includes(token)) {
+            // [token] is an allowed next state
+
+            // TODO: consider storing resultsWindow[i:] in the current state (e.g. for search)
+            setCurrentState(token);
+            // await _cancelRecognizing();
             return;
         }
     }
 }
 
-const handleStateResponse = async (state) => {
-    // handle state response where [state] is a state in [VOICE_STATES]
-    // handleFunc to be triggered after system response is played
+const handleState = async ({
+    currentState, 
+    voiceStates
+}) => {
+    const state = voiceStates[currentState];
 
-    if (state.systemResponses.length) {
+    if (state.systemResponses.length > 0) {
         // there exist system responses to play
         // TODO: randomly play a system response
         const { id, title, url } = state.systemResponses[0];
         // create track for react native track player
         const track = createVoiceTrack(state.systemResponses[0]);
         await playVoiceTrack(track, state.handleFunc);
+        console.log('A');
         return;
     }
+
+    console.log('B');
     state.handleFunc();
-}
-
-const handleState = async ({
-    currentState, 
-    voiceStates,
-    _startRecognizing,
-    _cancelRecognizing
-}) => {
-    const state = voiceStates[currentState];
-
-    switch (currentState) {
-        case 'home':
-            // handle home case
-            console.log('home state');
-            handleStateResponse(state);
-            break;
-        case 'explore':
-            // handle explore case
-            console.log('explore state');
-            handleStateResponse(state);
-            break;
-        case 'next':
-            // handle next case
-            console.log('next state');
-            handleStateResponse(state);
-            break;
-        case 'back':
-            // handle back case
-            console.log('back state');
-            handleStateResponse(state);
-            break;
-        case 'play':
-            // handle back case
-            console.log('play state');
-            handleStateResponse(state);
-            break;
-        case 'pause':
-            // handle back case
-            console.log('pause state');
-            handleStateResponse(state);
-            break;
-    }
 }
 
 export { 

@@ -144,7 +144,7 @@ const VoiceScreen = () => {
     Voice.onSpeechRecognized = onSpeechRecognized;
     Voice.onSpeechEnd = onSpeechEnd;
     Voice.onSpeechError = onSpeechError;
-    Voice.onSpeechResults = _.debounce(onSpeechResults, 1000);
+    Voice.onSpeechResults = _.debounce(onSpeechResults, 250);
     Voice.onSpeechPartialResults = onSpeechPartialResults;
     Voice.onSpeechVolumeChanged = onSpeechVolumeChanged;
 
@@ -186,9 +186,7 @@ const VoiceScreen = () => {
     // called each time [currentState] changes
     handleState({
       currentState, 
-      voiceStates: VOICE_STATES,
-      _startRecognizing,
-      _cancelRecognizing
+      voiceStates: VOICE_STATES
     });
   }, [currentState]);
 
@@ -241,10 +239,10 @@ const VoiceScreen = () => {
       systemResponses: [],
       handleFunc: async () => {
         // play next
-        await TrackPlayer.skipToNext();
         _startRecognizing();
+        await TrackPlayer.skipToNext();
       },
-      allowedNextStates: ['next', 'back', 'home', 'pause']
+      allowedNextStates: ['next', 'back', 'home', 'play', 'pause']
     },
     back: {
       state: 'back',
@@ -252,32 +250,32 @@ const VoiceScreen = () => {
       systemResponses: [],
       handleFunc: async () => {
         // play previous
-        await TrackPlayer.skipToPrevious();
         _startRecognizing();
+        await TrackPlayer.skipToPrevious();
       },
-      allowedNextStates: ['next', 'back', 'play', 'pause', 'home']
+      allowedNextStates: ['next', 'back', 'home', 'play', 'pause']
     },
     play: {
       state: 'play',
       firstSystemResponses: [],
       systemResponses: [],
       handleFunc: async () => {
-        // play previous
-        await TrackPlayer.play();
+        // play
         _startRecognizing();
+        await TrackPlayer.play();
       },
-      allowedNextStates: ['next', 'back', 'home', 'pause']
+      allowedNextStates: ['next', 'back', 'home', 'pause', 'play']
     },
     pause: {
       state: 'pause',
       firstSystemResponses: [],
       systemResponses: [],
       handleFunc: async () => {
-        // play previous
+        // pause
         await TrackPlayer.pause();
         _startRecognizing();
       },
-      allowedNextStates: ['next', 'back', 'home', 'play']
+      allowedNextStates: ['next', 'back', 'home', 'play', 'pause']
     },
   }
 
