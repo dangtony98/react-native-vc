@@ -1,14 +1,4 @@
 import TrackPlayer from "react-native-track-player";
-import Voice from '@react-native-voice/voice';
-
-const startVoice = async () => {
-    console.log('startVoice()');
-    try {
-        await Voice.start('en-US');
-    } catch (e) {
-        console.error(e);
-    }
-}
 
 const createVoiceTrack = (item) => {
     return {
@@ -45,14 +35,12 @@ const playVoiceTrack = async (track, callback) => {
 const setQueue = async (tracks) => {
     // standard setQueue function
     const queue = tracks.map(track => createTrack(track));
+    await TrackPlayer.reset();
     await TrackPlayer.add(queue);
     await TrackPlayer.play();
 };
 
-const parseResults = (resultsText) => {
-    // returns [text] with each token as a lowercase element in array
-    return resultsText.toLowerCase().split(' ');
-};
+const parseResults = (resultsText) => resultsText.toLowerCase().split(' ');
 
 const getWindow = (resultsArr, windowSize) => {
     // get window for voice recognition
@@ -64,39 +52,7 @@ const getWindow = (resultsArr, windowSize) => {
     ); 
 }
 
-const detectState = async ({
-    resultsWindow, 
-    stateTokens,
-    currentState,
-    setCurrentState,
-    voiceStates,
-    _cancelRecognizing
-}) => {
-    // check if [resultsWindow] contains any tokens in [currentState.allowedNextStates]
-    console.log('allowedNext');
-    console.log(voiceStates[currentState].allowedNextStates);
-    console.log(resultsWindow);
-
-    for (let i = resultsWindow.length - 1; i >= 0; i--) {
-        const token = resultsWindow[i];
-        // position is i
-        if (voiceStates[currentState].allowedNextStates.includes(token)) {
-            // [token] is an allowed next state
-
-            // TODO: consider storing resultsWindow[i:] in the current state (e.g. for search)
-            setCurrentState(token);
-            // await _cancelRecognizing();
-            return;
-        }
-    }
-}
-
-const handleState = async ({
-    currentState, 
-    voiceStates
-}) => {
-    const state = voiceStates[currentState];
-
+const handleStateResponse = async (state) => {
     if (state.systemResponses.length > 0) {
         // there exist system responses to play
         // TODO: randomly play a system response
@@ -104,12 +60,36 @@ const handleState = async ({
         // create track for react native track player
         const track = createVoiceTrack(state.systemResponses[0]);
         await playVoiceTrack(track, state.handleFunc);
-        console.log('A');
         return;
     }
-
-    console.log('B');
     state.handleFunc();
+}
+
+const detectState = async ({
+    resultsWindow, 
+    currentState,
+    setCurrentState,
+    voiceStates,
+    _cancelRecognizing
+}) => {
+    // check if [resultsWindow] contains any tokens in [currentState.neighbors]
+
+    console.log('resultsWindow');
+    console.log(resultsWindow);
+
+    const state = voiceStates[currentState];
+    for (let i = resultsWindow.length - 1; i >= 0; i--) {
+        const token = resultsWindow[i];
+        // position is [i]
+        if (state.neighbors.includes(token)) {
+            // [token] is a neighbor -> go to next voice state
+
+            // TODO: consider storing resultsWindow[i:] in the current state (e.g. for search)
+            setCurrentState(token);
+            handleStateResponse(voiceStates[token]);
+            return;
+        }
+    }
 }
 
 export { 
@@ -117,5 +97,5 @@ export {
     parseResults, 
     getWindow, 
     detectState, 
-    handleState 
+    handleStateResponse
 };

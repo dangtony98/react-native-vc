@@ -23,7 +23,8 @@ import {
   parseResults, 
   getWindow, 
   detectState, 
-  handleState
+  handleState,
+  handleStateResponse
 } from './src/handlePhraseProcessing';
 import Voice from '@react-native-voice/voice';
 import TrackPlayer, { Capability } from 'react-native-track-player';
@@ -48,7 +49,7 @@ const VoiceScreen = () => {
     loading,
     error: audioError, 
     data,
-    refetch: refetchAudio,
+    refetch,
     fetchMore
   } = useQuery(getAudioQuery, {
     notifyOnNetworkStatusChange: true,
@@ -144,7 +145,7 @@ const VoiceScreen = () => {
     Voice.onSpeechRecognized = onSpeechRecognized;
     Voice.onSpeechEnd = onSpeechEnd;
     Voice.onSpeechError = onSpeechError;
-    Voice.onSpeechResults = _.debounce(onSpeechResults, 250);
+    Voice.onSpeechResults = _.debounce(onSpeechResults, 1000);
     Voice.onSpeechPartialResults = onSpeechPartialResults;
     Voice.onSpeechVolumeChanged = onSpeechVolumeChanged;
 
@@ -162,6 +163,9 @@ const VoiceScreen = () => {
       compactCapabilities: [Capability.Play, Capability.Pause]
     });
 
+    console.log('init?');
+    handleStateResponse(VOICE_STATES[currentState]);
+
     return () => {
       Voice.destroy().then(Voice.removeAllListeners);
     }
@@ -174,7 +178,6 @@ const VoiceScreen = () => {
 
     const action = detectState({
       resultsWindow: window, 
-      stateTokens: STATE_TOKENS,
       currentState,
       setCurrentState,
       voiceStates: VOICE_STATES,
@@ -182,25 +185,13 @@ const VoiceScreen = () => {
     });
   }, [results]);
 
-  useEffect(() => {
-    // called each time [currentState] changes
-    handleState({
-      currentState, 
-      voiceStates: VOICE_STATES
-    });
-  }, [currentState]);
-
-  // TODO: can a voice state be triggered by multiple words?
+  // TODO: handle voice state being trigerred by multiple words
   const VOICE_STATES = {
     tutorial: {
-      state: 'tutorial',
-      firstSystemResponses: [],
       systemResponses: [],
       handleFunc: () => {}
     },
     home: {
-      state: 'home',
-      firstSystemResponses: [],
       systemResponses: [{
         id: 'voice-123',
         title: 'Home',
@@ -211,75 +202,64 @@ const VoiceScreen = () => {
       handleFunc: () => {
         _startRecognizing();
       },
-      allowedNextStates: ['explore']
+      neighbors: ['explore']
     },
     explore: {
-      state: 'explore',
-      firstSystemResponses: [],
       systemResponses: [{
         id: 'voice-234',
         title: 'Explore',
         url: 'https://audio-social.s3.amazonaws.com/voice-response/d4804e97-8265-4c32-8040-bdfbd29417c3.mp3',
         artist: 'Auledge',
-        duration: 2000
+        duration: 3000
       }],
       handleFunc: () => {
-        // after system speaks, start playing audio queue
+        // start playing audio queue
+        refetch();
+        _startRecognizing();
         if (data?.getAudio) {
           console.log(data.getAudio);
           setQueue(data?.getAudio);
         }
-        _startRecognizing();
       },
-      allowedNextStates: ['next', 'back', 'home', 'pause']
+      neighbors: ['next', 'back', 'home', 'pause']
     },
     next: {
-      state: 'next',
-      firstSystemResponses: [],
       systemResponses: [],
       handleFunc: async () => {
         // play next
         _startRecognizing();
         await TrackPlayer.skipToNext();
       },
-      allowedNextStates: ['next', 'back', 'home', 'play', 'pause']
+      neighbors: ['next', 'back', 'home', 'play', 'pause']
     },
     back: {
-      state: 'back',
-      firstSystemResponses: [],
       systemResponses: [],
       handleFunc: async () => {
         // play previous
         _startRecognizing();
         await TrackPlayer.skipToPrevious();
       },
-      allowedNextStates: ['next', 'back', 'home', 'play', 'pause']
+      neighbors: ['next', 'back', 'home', 'play', 'pause']
     },
     play: {
-      state: 'play',
-      firstSystemResponses: [],
       systemResponses: [],
       handleFunc: async () => {
         // play
         _startRecognizing();
         await TrackPlayer.play();
       },
-      allowedNextStates: ['next', 'back', 'home', 'pause', 'play']
+      neighbors: ['next', 'back', 'home', 'pause']
     },
     pause: {
-      state: 'pause',
-      firstSystemResponses: [],
       systemResponses: [],
       handleFunc: async () => {
         // pause
-        await TrackPlayer.pause();
         _startRecognizing();
+        await TrackPlayer.pause();
       },
-      allowedNextStates: ['next', 'back', 'home', 'play', 'pause']
+      neighbors: ['next', 'back', 'home', 'play']
     },
   }
-
-  const STATE_TOKENS = Object.keys(VOICE_STATES);
 
   return (
       <View style={{ flex: 1 }}>
