@@ -12,6 +12,7 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
 		28F039D95295E038414DBD16 /* libPods-ReactNativeVC-ReactNativeVCTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C5B0CB428DC2D69CDDCE41AD /* libPods-ReactNativeVC-ReactNativeVCTests.a */; };
+		5414ED6A27827658009404E5 /* next_audio.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 5414ED6927827658009404E5 /* next_audio.mp3 */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		A5AE61BBBF28830804A9360B /* libPods-ReactNativeVC.a in Frameworks */ = {isa = PBXBuildFile; fileRef = DC060F521A1545EA7F96C0D0 /* libPods-ReactNativeVC.a */; };
 /* End PBXBuildFile section */
@@ -36,6 +37,7 @@
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = ReactNativeVC/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ReactNativeVC/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = ReactNativeVC/main.m; sourceTree = "<group>"; };
+		5414ED6927827658009404E5 /* next_audio.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; name = next_audio.mp3; path = ../../../../next_audio.mp3; sourceTree = "<group>"; };
 		63431718C40FDB594B2064A5 /* Pods-ReactNativeVC.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ReactNativeVC.debug.xcconfig"; path = "Target Support Files/Pods-ReactNativeVC/Pods-ReactNativeVC.debug.xcconfig"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = ReactNativeVC/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		C3FB01438ECDBE119EAC5208 /* Pods-ReactNativeVC-ReactNativeVCTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ReactNativeVC-ReactNativeVCTests.debug.xcconfig"; path = "Target Support Files/Pods-ReactNativeVC-ReactNativeVCTests/Pods-ReactNativeVC-ReactNativeVCTests.debug.xcconfig"; sourceTree = "<group>"; };
@@ -116,6 +118,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
+				5414ED6927827658009404E5 /* next_audio.mp3 */,
 				13B07FAE1A68108700A75B9A /* ReactNativeVC */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				00E356EF1AD99517003FC87E /* ReactNativeVCTests */,
@@ -145,7 +148,6 @@
 				C3FB01438ECDBE119EAC5208 /* Pods-ReactNativeVC-ReactNativeVCTests.debug.xcconfig */,
 				C9D0AC569838AA817C0C9290 /* Pods-ReactNativeVC-ReactNativeVCTests.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -245,6 +247,7 @@
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
+				5414ED6A27827658009404E5 /* next_audio.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

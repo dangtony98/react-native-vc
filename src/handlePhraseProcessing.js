@@ -24,12 +24,6 @@ const playVoiceTrack = async (track, callback) => {
     await TrackPlayer.reset();
     await TrackPlayer.add([track]);
     await TrackPlayer.play();
-
-    // TO-DO: make sure callback is accurate?
-    // execute [callback] after track finishes playing
-    setTimeout(function(){
-        callback();
-    }, track.duration);
 };
 
 const setQueue = async (tracks) => {
@@ -52,17 +46,24 @@ const getWindow = (resultsArr, windowSize) => {
     ); 
 }
 
-const handleStateResponse = async (state) => {
+const handleStateResponse = async (state, payload) => {
     if (state.systemResponses.length > 0) {
         // there exist system responses to play
         // TODO: randomly play a system response
+
+
         const { id, title, url } = state.systemResponses[0];
         // create track for react native track player
         const track = createVoiceTrack(state.systemResponses[0]);
         await playVoiceTrack(track, state.handleFunc);
+        // TO-DO: make sure callback is accurate?
+        // execute [callback] after track finishes playing
+        setTimeout(function(){
+            state.handleFunc(payload);
+        }, track.duration);
         return;
     }
-    state.handleFunc();
+    state.handleFunc(payload);
 }
 
 const detectState = async ({
@@ -79,15 +80,29 @@ const detectState = async ({
 
     const state = voiceStates[currentState];
     for (let i = resultsWindow.length - 1; i >= 0; i--) {
+        // for each token in the results window (backwards)
         const token = resultsWindow[i];
-        // position is [i]
-        if (state.neighbors.includes(token)) {
-            // [token] is a neighbor -> go to next voice state
 
-            // TODO: consider storing resultsWindow[i:] in the current state (e.g. for search)
-            setCurrentState(token);
-            handleStateResponse(voiceStates[token]);
-            return;
+        // [i] is position of the matching token
+        // TODO: change current state to have a payload too?
+        // join tokens after [i] to be considered as the payload
+
+        for (let j = 0; j < state.neighbors.length; j++) {
+            // for each neighboring state
+            const neighbor = state.neighbors[j];
+            for (let k = 0; k < voiceStates[neighbor].names.length; k++) {
+                // for each name (alt) of neighboring state
+                if (voiceStates[neighbor].names[k] === token) {
+                    // case: [token] matching a neighboring state name matched
+                    setCurrentState(neighbor);
+                    // consider [payload] as all tokens after the token in position [i] of [resultsWindow]
+                    const payload = resultsWindow.slice(i + 1);
+                    console.log('payload');
+                    console.log(payload);
+                    handleStateResponse(voiceStates[neighbor], payload);
+                    return;
+                }
+            }
         }
     }
 }

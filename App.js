@@ -17,7 +17,8 @@ import {
   Text,
   useColorScheme,
   View,
-  TouchableOpacity
+  TouchableOpacity,
+  TextInput
 } from 'react-native';
 import { 
   parseResults, 
@@ -32,8 +33,10 @@ import _, { partial } from 'lodash';
 import { client } from './src/client';
 import getAudioQuery from './src/queries/getAudio';
 import { setQueue } from './src/handlePhraseProcessing';
+import { reformatSearchPayload } from './src/handleAppOps';
 
 const VoiceScreen = () => {
+  const [text, onChangeText] = useState("Useless Text");
   const [currentState, setCurrentState] = useState('home');
   const [pitch, setPitch] = useState('');
   const [error, setError] = useState('');
@@ -163,7 +166,6 @@ const VoiceScreen = () => {
       compactCapabilities: [Capability.Play, Capability.Pause]
     });
 
-    console.log('init?');
     handleStateResponse(VOICE_STATES[currentState]);
 
     return () => {
@@ -185,11 +187,10 @@ const VoiceScreen = () => {
     });
   }, [results]);
 
-  // TODO: handle voice state being trigerred by multiple words
   const VOICE_STATES = {
     tutorial: {
       systemResponses: [],
-      handleFunc: () => {}
+      handleFunc: (payload) => {}
     },
     home: {
       systemResponses: [{
@@ -199,10 +200,11 @@ const VoiceScreen = () => {
         artist: 'Auledge',
         duration: 6000
       }],
-      handleFunc: () => {
+      handleFunc: (payload) => {
         _startRecognizing();
       },
-      neighbors: ['explore']
+      names: ['home'],
+      neighbors: ['explore', 'search']
     },
     explore: {
       systemResponses: [{
@@ -212,7 +214,7 @@ const VoiceScreen = () => {
         artist: 'Auledge',
         duration: 3000
       }],
-      handleFunc: () => {
+      handleFunc: (payload) => {
         // start playing audio queue
         refetch();
         _startRecognizing();
@@ -221,48 +223,86 @@ const VoiceScreen = () => {
           setQueue(data?.getAudio);
         }
       },
+      names: ['explore'],
+      neighbors: ['next', 'back', 'home', 'pause']
+    },
+    search: {
+      systemResponses: [{
+        id: 'voice-123',
+        title: 'Search',
+        url: 'https://audio-social.s3.us-east-2.amazonaws.com/voice-response/bdecb2b0-2433-4293-8f06-2b2796c67ad5.mp3',
+        artist: 'Auledge',
+        duration: 6000
+      }],
+      handleFunc: (payload) => {
+        // TODO: preprocess [payload] and enter it into search input
+        console.log('Inside search handleFunc');
+        console.log(payload);
+        // payload = ['for', 'a', 'user']
+        const searchQuery = reformatSearchPayload(payload) // this is a string
+
+        // TODO: have Google Cloud API read out [searchQuery]
+        onChangeText(searchQuery);
+      },
+      names: ['search'],
       neighbors: ['next', 'back', 'home', 'pause']
     },
     next: {
+      // systemResponses: [{
+      //   id: 'voice-345',
+      //   title: 'Next',
+      //   url: 'https://audio-social.s3.us-east-2.amazonaws.com/sfx/next_audio.mp3',
+      //   artist: 'Auledge',
+      //   duration: 150
+      // }],
       systemResponses: [],
-      handleFunc: async () => {
+      handleFunc: async (payload) => {
         // play next
         _startRecognizing();
         await TrackPlayer.skipToNext();
       },
+      names: ['next'],
       neighbors: ['next', 'back', 'home', 'play', 'pause']
     },
     back: {
       systemResponses: [],
-      handleFunc: async () => {
+      handleFunc: async (payload) => {
         // play previous
         _startRecognizing();
         await TrackPlayer.skipToPrevious();
       },
+      names: ['back', 'previous'],
       neighbors: ['next', 'back', 'home', 'play', 'pause']
     },
     play: {
       systemResponses: [],
-      handleFunc: async () => {
+      handleFunc: async (payload) => {
         // play
         _startRecognizing();
         await TrackPlayer.play();
       },
+      names: ['play'],
       neighbors: ['next', 'back', 'home', 'pause']
     },
     pause: {
       systemResponses: [],
-      handleFunc: async () => {
+      handleFunc: async (payload) => {
         // pause
         _startRecognizing();
         await TrackPlayer.pause();
       },
+      names: ['pause'],
       neighbors: ['next', 'back', 'home', 'play']
     },
   }
 
   return (
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: 50 }}>
+        <TextInput
+          style={styles.input}
+          onChangeText={onChangeText}
+          value={text}
+        />
         <TouchableOpacity style={styles.button} onPress={_startRecognizing}>
           <Text>Start Recognizing</Text>
         </TouchableOpacity>
@@ -301,9 +341,12 @@ const styles = StyleSheet.create({
     marginTop: 50,
     marginBottom: 50
   },
-  highlight: {
-    fontWeight: '700',
-  },
+  input: {
+    height: 40,
+    margin: 12,
+    borderWidth: 1,
+    padding: 10,
+  }
 });
 
 export default App;
