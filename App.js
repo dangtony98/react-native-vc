@@ -25,7 +25,7 @@ import {
   getWindow, 
   detectState, 
   handleState,
-  handleStateResponse
+  playVoiceTrack
 } from './src/handlePhraseProcessing';
 import Voice from '@react-native-voice/voice';
 import TrackPlayer, { Capability } from 'react-native-track-player';
@@ -34,6 +34,13 @@ import { client } from './src/client';
 import getAudioQuery from './src/queries/getAudio';
 import { setQueue } from './src/handlePhraseProcessing';
 import { reformatSearchPayload } from './src/handleAppOps';
+import Sound from 'react-native-sound';
+
+import { 
+  HOME_TRACK,
+  EXPLORE_TRACK,
+  SEARCH_TRACK
+} from './src/tracks';
 
 const VoiceScreen = () => {
   const [text, onChangeText] = useState("Useless Text");
@@ -166,7 +173,7 @@ const VoiceScreen = () => {
       compactCapabilities: [Capability.Play, Capability.Pause]
     });
 
-    handleStateResponse(VOICE_STATES[currentState]);
+    VOICE_STATES[currentState].handleFunc();
 
     return () => {
       Voice.destroy().then(Voice.removeAllListeners);
@@ -187,77 +194,59 @@ const VoiceScreen = () => {
     });
   }, [results]);
 
+  // TODO: consider refactor to using react native sound to play
+  // voice tracks
+
   const VOICE_STATES = {
     tutorial: {
-      systemResponses: [],
       handleFunc: (payload) => {}
     },
     home: {
-      systemResponses: [{
-        id: 'voice-123',
-        title: 'Home',
-        url: 'https://audio-social.s3.us-east-2.amazonaws.com/voice-response/bdecb2b0-2433-4293-8f06-2b2796c67ad5.mp3',
-        artist: 'Auledge',
-        duration: 6000
-      }],
       handleFunc: (payload) => {
-        _startRecognizing();
+        playVoiceTrack(HOME_TRACK);
+          // Play the sound with an onEnd callback
+        setTimeout(() => {
+          _startRecognizing();
+        }, HOME_TRACK.duration);
       },
       names: ['home'],
       neighbors: ['explore', 'search']
     },
     explore: {
-      systemResponses: [{
-        id: 'voice-234',
-        title: 'Explore',
-        url: 'https://audio-social.s3.amazonaws.com/voice-response/d4804e97-8265-4c32-8040-bdfbd29417c3.mp3',
-        artist: 'Auledge',
-        duration: 3000
-      }],
       handleFunc: (payload) => {
         // start playing audio queue
-        refetch();
-        _startRecognizing();
-        if (data?.getAudio) {
-          console.log(data.getAudio);
-          setQueue(data?.getAudio);
-        }
+        playVoiceTrack(EXPLORE_TRACK);
+        setTimeout(() => {
+          refetch();
+          _startRecognizing();
+          if (data?.getAudio) {
+            console.log(data.getAudio);
+            setQueue(data?.getAudio);
+          }
+        }, EXPLORE_TRACK.duration);
       },
       names: ['explore'],
       neighbors: ['next', 'back', 'home', 'pause']
     },
     search: {
-      systemResponses: [{
-        id: 'voice-123',
-        title: 'Search',
-        url: 'https://audio-social.s3.us-east-2.amazonaws.com/voice-response/bdecb2b0-2433-4293-8f06-2b2796c67ad5.mp3',
-        artist: 'Auledge',
-        duration: 6000
-      }],
       handleFunc: (payload) => {
         // TODO: preprocess [payload] and enter it into search input
-        console.log('Inside search handleFunc');
-        console.log(payload);
-        // payload = ['for', 'a', 'user']
-        const searchQuery = reformatSearchPayload(payload) // this is a string
-
-        // TODO: have Google Cloud API read out [searchQuery]
-        onChangeText(searchQuery);
+        playVoiceTrack(SEARCH_TRACK);
+        setTimeout(() => {
+          _startRecognizing();
+          const searchQuery = reformatSearchPayload(payload) // this is a string
+          // TODO: have Google Cloud API read out [searchQuery]
+          onChangeText(searchQuery);
+        }, SEARCH_TRACK.duration);
       },
       names: ['search'],
       neighbors: ['next', 'back', 'home', 'pause']
     },
     next: {
-      // systemResponses: [{
-      //   id: 'voice-345',
-      //   title: 'Next',
-      //   url: 'https://audio-social.s3.us-east-2.amazonaws.com/sfx/next_audio.mp3',
-      //   artist: 'Auledge',
-      //   duration: 150
-      // }],
-      systemResponses: [],
       handleFunc: async (payload) => {
         // play next
+        // TODO: say name of next track before playing it?
+        // Pause. Say. Play?
         _startRecognizing();
         await TrackPlayer.skipToNext();
       },
@@ -265,7 +254,6 @@ const VoiceScreen = () => {
       neighbors: ['next', 'back', 'home', 'play', 'pause']
     },
     back: {
-      systemResponses: [],
       handleFunc: async (payload) => {
         // play previous
         _startRecognizing();
@@ -275,7 +263,6 @@ const VoiceScreen = () => {
       neighbors: ['next', 'back', 'home', 'play', 'pause']
     },
     play: {
-      systemResponses: [],
       handleFunc: async (payload) => {
         // play
         _startRecognizing();
@@ -285,7 +272,6 @@ const VoiceScreen = () => {
       neighbors: ['next', 'back', 'home', 'pause']
     },
     pause: {
-      systemResponses: [],
       handleFunc: async (payload) => {
         // pause
         _startRecognizing();

@@ -46,26 +46,6 @@ const getWindow = (resultsArr, windowSize) => {
     ); 
 }
 
-const handleStateResponse = async (state, payload) => {
-    if (state.systemResponses.length > 0) {
-        // there exist system responses to play
-        // TODO: randomly play a system response
-
-
-        const { id, title, url } = state.systemResponses[0];
-        // create track for react native track player
-        const track = createVoiceTrack(state.systemResponses[0]);
-        await playVoiceTrack(track, state.handleFunc);
-        // TO-DO: make sure callback is accurate?
-        // execute [callback] after track finishes playing
-        setTimeout(function(){
-            state.handleFunc(payload);
-        }, track.duration);
-        return;
-    }
-    state.handleFunc(payload);
-}
-
 const detectState = async ({
     resultsWindow, 
     currentState,
@@ -83,10 +63,6 @@ const detectState = async ({
         // for each token in the results window (backwards)
         const token = resultsWindow[i];
 
-        // [i] is position of the matching token
-        // TODO: change current state to have a payload too?
-        // join tokens after [i] to be considered as the payload
-
         for (let j = 0; j < state.neighbors.length; j++) {
             // for each neighboring state
             const neighbor = state.neighbors[j];
@@ -99,7 +75,8 @@ const detectState = async ({
                     const payload = resultsWindow.slice(i + 1);
                     console.log('payload');
                     console.log(payload);
-                    handleStateResponse(voiceStates[neighbor], payload);
+
+                    voiceStates[neighbor].handleFunc(payload);
                     return;
                 }
             }
@@ -112,5 +89,5 @@ export {
     parseResults, 
     getWindow, 
     detectState, 
-    handleStateResponse
+    playVoiceTrack
 };
